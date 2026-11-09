@@ -1,0 +1,14 @@
+{
+  "display_name": "砚台 · 其他可能",
+  "loading_order": 35,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "砚台",
+  "version": "1.0.0",
+  "homePage": "https://github.com/ayan-atelier/yantai-echoes",
+  "minimum_client_version": "1.14.0",
+  "auto_update": true,
+  "description": "简单无感的重 roll 平行支线回溯工具：平时 100% 原生无痕，点击页码或翻页时浮现快捷工具栏，随时回看、收藏、备注、隐藏、历史楼层重 roll 或开启新分支，完全不影响当前存档进度。"
+}

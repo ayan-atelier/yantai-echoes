@@ -1,0 +1,561 @@
+/* 砚台 · 其他可能 (yantai-echoes) — 100% 原生无痕页脚 + 速览管理面板 */
+
+:root {
+  --yte-bg: var(--nt-paper, var(--SmartThemeBlurTintColor, rgba(28, 27, 26, 0.95)));
+  --yte-panel: var(--nt-secondary, rgba(128, 128, 128, 0.09));
+  --yte-border: var(--nt-border, var(--SmartThemeBorderColor, rgba(150, 145, 138, 0.24)));
+  --yte-text: var(--nt-text, var(--SmartThemeBodyColor, #e6e2dc));
+  --yte-muted: var(--nt-muted, var(--SmartThemeEmColor, #9e9890));
+  --yte-accent: var(--nt-accent, var(--SmartThemeQuoteColor, #c99868));
+  --yte-star: #d9a441;
+  --yte-radius: 8px;
+}
+
+/* ============================================================================
+   1. 历史楼层原生页脚 (< 2/2 >) 无痕解锁 — 与最后一段 100% 保持同款同行显示
+   ============================================================================ */
+body.swipeAllMessages #chat .mes[data-yte-historical="true"] .swipeRightBlock {
+  pointer-events: auto;
+}
+
+body.swipeAllMessages #chat .mes[data-yte-historical="true"] :is(.swipes-counter, .swipe_right),
+body.swipeAllMessages #chat .mes[data-yte-historical="true"][data-yte-can-left="true"] .swipe_left {
+  opacity: 1 !important;
+  visibility: visible !important;
+  interactivity: auto !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+body.swipeAllMessages #chat .mes[data-yte-historical="true"]:not([data-yte-can-left="true"]) .swipe_left {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* 当历史楼层正在回看非原主线的其他可能时，仅让页码数字呈温润强调色（如 1/2*），无多余边框 */
+#chat .mes[data-yte-previewing="true"] .swipes-counter {
+  color: var(--yte-accent) !important;
+  font-weight: 600;
+}
+
+#chat .mes[data-yte-rolling="true"] .swipes-counter {
+  color: var(--yte-accent) !important;
+}
+
+/* ============================================================================
+   2. 主动回看时浮现的楼层底部工具栏 (.yte-dock / .yte-bar)
+      平时阅读时不渲染任何节点；一旦点击 `<`、`2/3` 或 `>` 自动浮现
+   ============================================================================ */
+#chat .yte-dock {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  user-select: none;
+}
+
+#chat .yte-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--yte-border);
+  border-radius: var(--yte-radius);
+  background: color-mix(in srgb, var(--yte-panel) 85%, transparent);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+#chat .yte-bar.is-previewing {
+  border-color: color-mix(in srgb, var(--yte-accent) 60%, var(--yte-border));
+  background: color-mix(in srgb, var(--yte-accent) 9%, var(--yte-panel));
+}
+
+#chat .yte-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+#chat .yte-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#chat .yte-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--yte-text);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#chat .yte-status.is-preview {
+  color: var(--yte-accent);
+}
+
+#chat .yte-status small {
+  color: var(--yte-muted);
+  font-size: 11px;
+}
+
+#chat .yte-note-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-width: 150px;
+  padding: 0 7px !important;
+  border: 1px dashed color-mix(in srgb, var(--yte-accent) 55%, var(--yte-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yte-accent) 12%, transparent);
+  color: var(--yte-text);
+  font-size: 11px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#chat .yte-close-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 7px !important;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yte-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#chat .yte-close-bar:hover {
+  color: var(--yte-text);
+  border-color: var(--yte-border);
+  background: color-mix(in srgb, var(--yte-panel) 90%, transparent);
+}
+
+#chat .yte-bar-mid,
+#chat .yte-bar-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@keyframes ytePulseHighlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  40% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--yte-accent) 55%, transparent);
+  }
+}
+
+#chat .yte-dock .yte-pulse-highlight {
+  animation: ytePulseHighlight 0.9s ease;
+}
+
+/* ============================================================================
+   3. 通用按钮与备注输入框样式（工具栏 + 全部列表弹窗共用）
+   ============================================================================ */
+:is(#chat .yte-dock, #yte-overview-modal) .yte-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 27px !important;
+  min-height: 27px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--yte-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yte-text);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+:is(#chat .yte-dock, #yte-overview-modal) .yte-btn:hover:not(:disabled) {
+  border-color: var(--yte-accent);
+  background: color-mix(in srgb, var(--yte-accent) 14%, transparent);
+}
+
+:is(#chat .yte-dock, #yte-overview-modal) .yte-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:is(#chat .yte-dock, #yte-overview-modal) .yte-btn.is-starred {
+  color: var(--yte-star);
+  border-color: color-mix(in srgb, var(--yte-star) 55%, var(--yte-border));
+  background: color-mix(in srgb, var(--yte-star) 12%, transparent);
+}
+
+:is(#chat .yte-dock, #yte-overview-modal) .yte-btn-primary {
+  border-color: color-mix(in srgb, var(--yte-accent) 65%, var(--yte-border));
+  background: color-mix(in srgb, var(--yte-accent) 16%, transparent);
+  color: var(--yte-text);
+  font-weight: 500;
+}
+
+:is(#chat .yte-dock, #yte-overview-modal) .yte-note-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--yte-border);
+  border-radius: var(--yte-radius);
+  background: color-mix(in srgb, var(--yte-bg) 92%, transparent);
+}
+
+#chat .yte-dock .yte-note-input,
+#yte-overview-modal .yte-modal-note-input,
+#yte-overview-modal .yte-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--yte-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--yte-panel) 55%, transparent);
+  color: var(--yte-text);
+  font-size: 12px;
+}
+
+#yte-overview-modal.yte-modal-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: min(860px, calc(100vw - 20px));
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--yte-border);
+  border-radius: 12px;
+  background: var(--yte-bg);
+  color: var(--yte-text);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  text-align: left;
+}
+
+#yte-overview-modal.yte-modal-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#yte-overview-modal.yte-modal-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(2px);
+}
+
+#yte-overview-modal .yte-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - 26px);
+  max-height: calc(100dvh - 26px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+#yte-overview-modal .yte-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--yte-border);
+  flex: none;
+}
+
+#yte-overview-modal .yte-modal-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#yte-overview-modal .yte-modal-head h3 i {
+  color: var(--yte-accent);
+}
+
+#yte-overview-modal .yte-modal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+#yte-overview-modal .yte-modal-close {
+  width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border: 1px solid var(--yte-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yte-muted);
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+
+#yte-overview-modal .yte-modal-close:hover {
+  color: var(--yte-text);
+  border-color: var(--yte-accent);
+}
+
+#yte-overview-modal .yte-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--yte-border);
+  background: color-mix(in srgb, var(--yte-panel) 45%, transparent);
+  flex: none;
+}
+
+#yte-overview-modal .yte-filter-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#yte-overview-modal .yte-filter-tab {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--yte-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--yte-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#yte-overview-modal .yte-filter-tab.is-active {
+  color: var(--yte-text);
+  border-color: var(--yte-accent);
+  background: color-mix(in srgb, var(--yte-accent) 16%, transparent);
+  font-weight: 600;
+}
+
+#yte-overview-modal .yte-search-input {
+  flex: 1 1 180px;
+  max-width: 280px;
+}
+
+#yte-overview-modal .yte-modal-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#yte-overview-modal .yte-card {
+  border: 1px solid var(--yte-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--yte-panel) 50%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#yte-overview-modal .yte-card.is-canonical {
+  border-color: color-mix(in srgb, var(--yte-accent) 70%, var(--yte-border));
+}
+
+#yte-overview-modal .yte-card.is-hidden {
+  opacity: 0.72;
+}
+
+#yte-overview-modal .yte-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#yte-overview-modal .yte-card-badges,
+#yte-overview-modal .yte-card-tools,
+#yte-overview-modal .yte-card-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#yte-overview-modal .yte-card-num {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--yte-text);
+}
+
+#yte-overview-modal .yte-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--yte-border);
+}
+
+#yte-overview-modal .yte-badge-canonical {
+  color: var(--yte-accent);
+  border-color: color-mix(in srgb, var(--yte-accent) 60%, var(--yte-border));
+  background: color-mix(in srgb, var(--yte-accent) 12%, transparent);
+}
+
+#yte-overview-modal .yte-badge-preview {
+  color: var(--yte-text);
+  background: color-mix(in srgb, var(--yte-panel) 90%, transparent);
+}
+
+#yte-overview-modal .yte-badge-star {
+  color: var(--yte-star);
+  border-color: color-mix(in srgb, var(--yte-star) 50%, var(--yte-border));
+}
+
+#yte-overview-modal .yte-badge-hidden {
+  color: var(--yte-muted);
+}
+
+#yte-overview-modal .yte-card-chars {
+  color: var(--yte-muted);
+  font-size: 11px;
+}
+
+#yte-overview-modal .yte-card-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--yte-accent);
+  background: color-mix(in srgb, var(--yte-accent) 12%, transparent);
+  color: var(--yte-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#yte-overview-modal .yte-card-note i {
+  color: var(--yte-accent);
+}
+
+#yte-overview-modal .yte-card-excerpt {
+  margin: 0;
+  color: var(--yte-text);
+  font-size: 13px;
+  line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#yte-overview-modal .yte-card-full {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--yte-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--yte-bg) 85%, transparent);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+#yte-overview-modal .yte-confirm-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--yte-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--yte-accent) 12%, transparent);
+  font-size: 12px;
+}
+
+#yte-overview-modal .yte-confirm-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#yte-overview-modal .yte-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--yte-muted);
+}
+
+#yte-overview-modal .yte-empty i {
+  font-size: 26px;
+  color: var(--yte-accent);
+  margin-bottom: 8px;
+}
+
+.yte-settings-desc {
+  margin: 4px 0 8px;
+  color: var(--SmartThemeEmColor, #9e9890);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+  #yte-overview-modal.yte-modal-dialog {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: calc(100dvh - 16px);
+  }
+  #yte-overview-modal .yte-modal {
+    max-height: calc(100dvh - 18px);
+  }
+  #yte-overview-modal .yte-search-input {
+    max-width: none;
+    width: 100%;
+  }
+}
