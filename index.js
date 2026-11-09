@@ -1442,14 +1442,14 @@ function mountSettingsPanel() {
   wrapper.innerHTML = `
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>重Roll助手</b>
+        <b>砚台 · 重Roll助手</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <p class="yte-settings-desc">平时 100% 原生无痕（仅显示 <code>&lt; 2/3 &gt;</code>）；当你点击某楼的页码或左右箭头回看时，自动浮现该楼专属的收藏、备注、隐藏、重 roll 与分支工具栏。</p>
         <label class="checkbox_label">
           <input type="checkbox" data-yte-setting="enabled" ${settings.enabled ? 'checked' : ''}>
-          <span>启用「重Roll助手」</span>
+          <span>启用「砚台 · 重Roll助手」</span>
         </label>
         <label class="checkbox_label">
           <input type="checkbox" data-yte-setting="enableHistoricalSwipes" ${settings.enableHistoricalSwipes ? 'checked' : ''}>
