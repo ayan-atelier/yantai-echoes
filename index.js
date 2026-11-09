@@ -38,6 +38,7 @@ let pendingRegenerateRescue = null;
  */
 let lastObservedLatestSwipe = { mesId: -1, swipeId: -1 };
 let isAutoSkippingHiddenSwipe = false;
+let isInternalRenderEmit = false;
 let rollingMesId = -1;
 
 function getCtx() {
@@ -115,6 +116,45 @@ function formatSwipeTextToHtml(mesId, message, rawText, isReasoning = false) {
   return esc(rawText).replace(/\r?\n/g, '<br>');
 }
 
+/**
+ * Notify SillyTavern and third-party frontend renderers (such as JS-Slash-Runner / 酒馆助手)
+ * that `.mes_text` on `mesId` has been updated, so regex/frontend `<iframe>` blocks and
+ * code-block folding run immediately without needing a page refresh.
+ * @param {number} mesId
+ */
+function notifyMessageDomUpdated(mesId) {
+  const ctx = getCtx();
+  const mesEl = document.querySelector(`#chat .mes[mesid="${mesId}"]`);
+  if (!ctx || !mesEl) return;
+
+  try {
+    if (typeof ctx.addCopyToCodeBlocks === 'function') {
+      ctx.addCopyToCodeBlocks(globalThis.$ ? globalThis.$(mesEl) : mesEl);
+    }
+  } catch (_) {
+    // ignore
+  }
+
+  const eventSource = ctx.eventSource;
+  const eventTypes = ctx.eventTypes || ctx.event_types;
+  const message = ctx.chat?.[mesId];
+  const renderEvent = message?.is_user
+    ? eventTypes?.USER_MESSAGE_RENDERED
+    : eventTypes?.CHARACTER_MESSAGE_RENDERED;
+
+  if (eventSource && typeof eventSource.emit === 'function' && renderEvent) {
+    isInternalRenderEmit = true;
+    try {
+      void Promise.resolve(eventSource.emit(renderEvent, Number(mesId), EXTENSION_KEY)).finally(() => {
+        isInternalRenderEmit = false;
+      });
+    } catch (err) {
+      isInternalRenderEmit = false;
+      console.warn('[砚台·其他可能] 触发消息渲染事件异常:', err);
+    }
+  }
+}
+
 function ensureFloorState(mesId, message) {
   const summary = summarizeMessageEchoes(message);
   let state = previewMap.get(mesId);
@@ -143,16 +183,20 @@ function restoreMessageToCanonicalDom(mesId, { keepExpanded = false } = {}) {
   const ctx = getCtx();
   const message = ctx?.chat?.[mesId];
   const mesEl = document.querySelector(`#chat .mes[mesid="${mesId}"]`);
+  const wasPreviewing = Boolean(
+    mesEl?.hasAttribute('data-yte-previewing') ||
+    (state && state.originalHtml !== null),
+  );
 
-  if (mesEl && message) {
+  if (mesEl && message && wasPreviewing) {
     const swipes = getMessageSwipes(message);
     const canonicalSwipeId = Math.max(0, Math.min(swipes.length - 1, Number(message.swipe_id ?? 0) || 0));
     const textEl = mesEl.querySelector('.mes_text');
     if (textEl) {
-      if (state?.originalHtml != null) {
-        textEl.innerHTML = state.originalHtml;
-      } else if (swipes[canonicalSwipeId] !== undefined) {
+      if (swipes[canonicalSwipeId] !== undefined) {
         textEl.innerHTML = formatSwipeTextToHtml(mesId, message, swipes[canonicalSwipeId], false);
+      } else if (state?.originalHtml != null) {
+        textEl.innerHTML = state.originalHtml;
       }
     }
 
@@ -169,6 +213,8 @@ function restoreMessageToCanonicalDom(mesId, { keepExpanded = false } = {}) {
     }
 
     mesEl.removeAttribute('data-yte-previewing');
+  } else if (mesEl) {
+    mesEl.removeAttribute('data-yte-previewing');
   }
 
   if (!keepExpanded) {
@@ -180,6 +226,10 @@ function restoreMessageToCanonicalDom(mesId, { keepExpanded = false } = {}) {
     state.editingNote = false;
     state.originalHtml = null;
     state.originalReasoningHtml = null;
+  }
+
+  if (wasPreviewing) {
+    notifyMessageDomUpdated(mesId);
   }
 }
 
@@ -255,6 +305,7 @@ function applyInPlacePreview(mesId, targetSwipeId, { expandBar = true } = {}) {
   }
   mesEl.setAttribute('data-yte-previewing', 'true');
   decorateMessageElement(mesId);
+  notifyMessageDomUpdated(mesId);
 }
 
 /**
@@ -905,7 +956,11 @@ async function setCanonicalSwipeOnMessage(mesId, targetSwipeId, { keepExpanded =
   const swipes = getMessageSwipes(message);
   if (targetSwipeId < 0 || targetSwipeId >= swipes.length) return;
 
-  restoreMessageToCanonicalDom(mesId, { keepExpanded });
+  const mesEl = document.querySelector(`#chat .mes[mesid="${mesId}"]`);
+  mesEl?.removeAttribute('data-yte-previewing');
+  if (!keepExpanded) {
+    previewMap.delete(mesId);
+  }
 
   message.swipe_id = targetSwipeId;
   message.mes = swipes[targetSwipeId];
@@ -924,7 +979,6 @@ async function setCanonicalSwipeOnMessage(mesId, targetSwipeId, { keepExpanded =
   if (typeof ctx.updateMessageBlock === 'function') {
     ctx.updateMessageBlock(mesId, message, { rerenderMessage: true });
   } else {
-    const mesEl = document.querySelector(`#chat .mes[mesid="${mesId}"]`);
     const textEl = mesEl?.querySelector('.mes_text');
     if (textEl) {
       textEl.innerHTML = formatSwipeTextToHtml(mesId, message, message.mes, false);
@@ -935,10 +989,14 @@ async function setCanonicalSwipeOnMessage(mesId, targetSwipeId, { keepExpanded =
     const st = ensureFloorState(mesId, message);
     st.expanded = true;
     st.previewSwipeId = targetSwipeId;
+    st.editingNote = false;
+    st.originalHtml = null;
+    st.originalReasoningHtml = null;
   }
 
   await persistChatNow();
   decorateMessageElement(mesId);
+  notifyMessageDomUpdated(mesId);
 }
 
 function onModalInput(event) {
@@ -1485,6 +1543,7 @@ function bindEvents() {
 
   if (eventTypes.CHARACTER_MESSAGE_RENDERED) {
     eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, (mesId) => {
+      if (isInternalRenderEmit) return;
       const targetId = Number(mesId);
       const chat = ctx.chat;
       if (
