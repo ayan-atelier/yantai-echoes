@@ -72,7 +72,7 @@ async function persistChatNow() {
     await ctx.saveChat?.();
     ctx.saveMetadataDebounced?.();
   } catch (err) {
-    console.warn('[砚台·其他可能] 保存聊天数据失败:', err);
+    console.warn('[重Roll助手] 保存聊天数据失败:', err);
   }
 }
 
@@ -92,7 +92,7 @@ function esc(value) {
 
 function notify(message, type = 'info') {
   if (globalThis.toastr && typeof globalThis.toastr[type] === 'function') {
-    globalThis.toastr[type](message, '砚台 · 其他可能', { timeOut: 2600 });
+    globalThis.toastr[type](message, '重Roll助手', { timeOut: 2600 });
   }
 }
 
@@ -110,7 +110,7 @@ function formatSwipeTextToHtml(mesId, message, rawText, isReasoning = false) {
         Boolean(isReasoning),
       );
     } catch (err) {
-      console.warn('[砚台·其他可能] messageFormatting 渲染回退:', err);
+      console.warn('[重Roll助手] messageFormatting 渲染回退:', err);
     }
   }
   return esc(rawText).replace(/\r?\n/g, '<br>');
@@ -150,7 +150,7 @@ function notifyMessageDomUpdated(mesId) {
       });
     } catch (err) {
       isInternalRenderEmit = false;
-      console.warn('[砚台·其他可能] 触发消息渲染事件异常:', err);
+      console.warn('[重Roll助手] 触发消息渲染事件异常:', err);
     }
   }
 }
@@ -388,16 +388,16 @@ function decorateMessageElement(mesId) {
 
     const noteHint = activeMeta.note ? ` · 备注：${activeMeta.note}` : '';
     const previewHint = isPreviewingOther ? `（正在回看 #${activeSwipeId + 1}，AI 仍读原路线 #${summary.canonicalSwipeId + 1}）` : '';
-    counterEl.title = `点击展开/收起本楼「其他可能」工具栏${previewHint}${noteHint}`;
+    counterEl.title = `点击展开/收起本楼「重Roll助手」工具栏${previewHint}${noteHint}`;
   }
 
   if (!isLatestMessage && leftEl) {
-    leftEl.title = canSwipeLeft ? '查看上一条可能（不影响当前主线进度）' : '';
+    leftEl.title = canSwipeLeft ? '查看上一条重 roll（不影响当前主线进度）' : '';
   }
   if (!isLatestMessage && rightEl) {
     rightEl.title = isAtLastSwipe
-      ? '已到最后一页，点击展开「其他可能」工具栏（可重 roll 或管理分支）'
-      : '查看下一条可能（不影响当前主线进度）';
+      ? '已到最后一页，点击展开「重Roll助手」工具栏（可重 roll 或管理分支）'
+      : '查看下一条重 roll（不影响当前主线进度）';
   }
 
   // Only render the inline action dock when the user has actively clicked `<`, `2/3`, or `>` on this floor
@@ -648,9 +648,9 @@ async function rollHistoricalMessage(mesId) {
     await persistChatNow();
 
     applyInPlacePreview(mesId, newSwipeId, { expandBar: true });
-    notify(`已在第 #${mesId} 楼重 roll 出第 #${newSwipeId + 1} 条可能（仅预览，原路线与后续楼层均未改动）`, 'success');
+    notify(`已在第 #${mesId} 楼重 roll 出第 #${newSwipeId + 1} 条（仅预览，原路线与后续楼层均未改动）`, 'success');
   } catch (err) {
-    console.error('[砚台·其他可能] 历史楼层重 roll 失败:', err);
+    console.error('[重Roll助手] 历史楼层重 roll 失败:', err);
     notify(`重 roll 失败：${err?.message || String(err)}`, 'error');
   } finally {
     rollingMesId = -1;
@@ -704,7 +704,7 @@ async function saveRouteAAndBranchRouteB(mesId, targetSwipeId) {
       } else if (typeof ctx.openCharacterChat === 'function') {
         await ctx.openCharacterChat(branchFileName);
       }
-      notify(`已保存原路线，并从第 #${mesId} 楼的第 #${targetSwipeId + 1} 条可能开启新分支：「${branchFileName}」`, 'success');
+      notify(`已保存原路线，并从第 #${mesId} 楼的第 #${targetSwipeId + 1} 条开启新分支：「${branchFileName}」`, 'success');
       return;
     }
     if (typeof bookmarksMod.branchChat === 'function') {
@@ -715,7 +715,7 @@ async function saveRouteAAndBranchRouteB(mesId, targetSwipeId) {
       return;
     }
   } catch (err) {
-    console.error('[砚台·其他可能] 创建分支存档失败:', err);
+    console.error('[重Roll助手] 创建分支存档失败:', err);
     notify(`创建分支失败：${err?.message || String(err)}`, 'error');
   }
 }
@@ -912,7 +912,7 @@ function renderOverviewModal() {
        </div>`;
 
   modal.innerHTML = `
-    <section class="yte-modal" aria-label="其他可能管理面板">
+    <section class="yte-modal" aria-label="重Roll助手管理面板">
       <header class="yte-modal-head">
         <h3><i class="fa-solid fa-layer-group"></i> 第 #${mesId} 楼 · 全部 (${summary.total})</h3>
         <div class="yte-modal-head-actions">
@@ -1442,14 +1442,14 @@ function mountSettingsPanel() {
   wrapper.innerHTML = `
     <div class="inline-drawer">
       <div class="inline-drawer-toggle inline-drawer-header">
-        <b>砚台 · 其他可能</b>
+        <b>重Roll助手</b>
         <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
       </div>
       <div class="inline-drawer-content">
         <p class="yte-settings-desc">平时 100% 原生无痕（仅显示 <code>&lt; 2/3 &gt;</code>）；当你点击某楼的页码或左右箭头回看时，自动浮现该楼专属的收藏、备注、隐藏、重 roll 与分支工具栏。</p>
         <label class="checkbox_label">
           <input type="checkbox" data-yte-setting="enabled" ${settings.enabled ? 'checked' : ''}>
-          <span>启用「砚台 · 其他可能」</span>
+          <span>启用「重Roll助手」</span>
         </label>
         <label class="checkbox_label">
           <input type="checkbox" data-yte-setting="enableHistoricalSwipes" ${settings.enableHistoricalSwipes ? 'checked' : ''}>
