@@ -33,6 +33,15 @@ body.swipeAllMessages #chat .mes[data-yte-historical="true"]:not([data-yte-can-l
   pointer-events: none !important;
 }
 
+/* 0 楼（开场白 / 多开场白）以及未启用历史回看的楼层，在进入正文后隐藏页码与翻页箭头 */
+body.swipeAllMessages #chat .mes[mesid="0"]:not(.last_mes) :is(.swipe_left, .swipe_right, .swipes-counter),
+body.swipeAllMessages #chat .mes:not(.last_mes):not([data-yte-historical="true"]) :is(.swipe_left, .swipe_right, .swipes-counter) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  interactivity: inert !important;
+  pointer-events: none !important;
+}
+
 /* 当历史楼层正在回看非原主线的其他可能时，仅让页码数字呈温润强调色（如 1/2*），无多余边框 */
 #chat .mes[data-yte-previewing="true"] .swipes-counter {
   color: var(--yte-accent) !important;

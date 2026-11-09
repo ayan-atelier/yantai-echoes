@@ -314,6 +314,10 @@ function applyInPlacePreview(mesId, targetSwipeId, { expandBar = true } = {}) {
  * - Active (after clicking `<`, `2/3`, or `>`): shows the sleek inline action bar right above the footer!
  * @param {number} mesId
  */
+function isOpeningGreetingFloor(mesId) {
+  return Number(mesId) === 0;
+}
+
 function decorateMessageElement(mesId) {
   const settings = getSettings();
   const ctx = getCtx();
@@ -334,11 +338,12 @@ function decorateMessageElement(mesId) {
   }
 
   const message = chat[mesId];
-  if (message.is_user || message.is_system || message.extra?.isSmallSys || message.extra?.swipeable === false) {
+  if (isOpeningGreetingFloor(mesId) || message.is_user || message.is_system || message.extra?.isSmallSys || message.extra?.swipeable === false) {
     existingDock?.remove();
     mesEl.removeAttribute('data-yte-historical');
     mesEl.removeAttribute('data-yte-multi');
     mesEl.removeAttribute('data-yte-can-left');
+    mesEl.removeAttribute('data-yte-previewing');
     return;
   }
 
@@ -1315,7 +1320,7 @@ async function onDocumentClickCapture(event) {
   const ctx = getCtx();
   const chat = ctx?.chat;
   const message = chat?.[mesId];
-  if (!message || message.is_user || message.is_system || !Number.isInteger(mesId)) return;
+  if (!message || isOpeningGreetingFloor(mesId) || message.is_user || message.is_system || !Number.isInteger(mesId)) return;
 
   const isLatestMessage = mesId === chat.length - 1;
 
@@ -1521,10 +1526,10 @@ function bindEvents() {
       const settings = getSettings();
       if (settings.enabled && settings.rescueOnRegenerate && type === 'regenerate') {
         const chat = ctx.chat;
-        if (Array.isArray(chat) && chat.length > 0) {
+        if (Array.isArray(chat) && chat.length > 1) {
           const lastIdx = chat.length - 1;
           const lastMes = chat[lastIdx];
-          if (lastMes && !lastMes.is_user && !lastMes.is_system) {
+          if (!isOpeningGreetingFloor(lastIdx) && lastMes && !lastMes.is_user && !lastMes.is_system) {
             const swipes = getMessageSwipes(lastMes);
             if (swipes.length > 0) {
               pendingRegenerateRescue = {
@@ -1573,7 +1578,7 @@ function bindEvents() {
       const targetId = Number(mesId);
       const chat = ctx.chat;
       const message = chat?.[targetId];
-      if (!message) return;
+      if (!message || isOpeningGreetingFloor(targetId)) return;
 
       const currentSwipeId = Number(message.swipe_id ?? 0);
       const prevSwipeId = lastObservedLatestSwipe.mesId === targetId ? lastObservedLatestSwipe.swipeId : -1;
