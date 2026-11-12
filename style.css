@@ -20,11 +20,25 @@ body.swipeAllMessages #chat .mes[data-yte-historical="true"] .swipeRightBlock {
 
 body.swipeAllMessages #chat .mes[data-yte-historical="true"] :is(.swipes-counter, .swipe_right),
 body.swipeAllMessages #chat .mes[data-yte-historical="true"][data-yte-can-left="true"] .swipe_left {
+  display: flex !important;
   opacity: 1 !important;
   visibility: visible !important;
   interactivity: auto !important;
   pointer-events: auto !important;
   cursor: pointer;
+}
+
+/* 兼容 TT 酒馆 / 旧版酒馆与自定义美化：当最新楼层已有 2 条及以上差分时，确保左翻页箭头 `<` 正常显示 */
+body.yte-enabled:not(.hideAllSwipeButtons):not([data-swiping="true"]) #chat .mes.last_mes[data-yte-multi="true"] .swipe_left {
+  display: flex !important;
+  visibility: visible !important;
+  interactivity: auto !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+body.yte-enabled:not(.hideAllSwipeButtons):not([data-swiping="true"]) #chat .mes.last_mes[data-yte-multi="true"]:not(.swipes_visible) .swipe_left {
+  opacity: 0.7 !important;
 }
 
 body.swipeAllMessages #chat .mes[data-yte-historical="true"]:not([data-yte-can-left="true"]) .swipe_left {

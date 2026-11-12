@@ -368,10 +368,51 @@ function decorateMessageElement(mesId) {
     ? activeSwipeId >= (visiblePool[visiblePool.length - 1] ?? summary.total - 1)
     : posInPool >= visiblePool.length - 1;
 
+  const isOverswipeGenerating = isLatestMessage
+    && Array.isArray(message.swipes)
+    && message.swipes.length > 0
+    && Number(message.swipe_id) >= message.swipes.length;
+
+  const isHostHidingSwipes = typeof document !== 'undefined' && (
+    document.body?.classList?.contains('hideAllSwipeButtons') ||
+    document.body?.dataset?.swiping === 'true'
+  );
+
   if (!isLatestMessage && settings.enableHistoricalSwipes) {
     mesEl.setAttribute('data-yte-historical', 'true');
     mesEl.setAttribute('data-yte-multi', summary.total > 1 ? 'true' : 'false');
     mesEl.setAttribute('data-yte-can-left', canSwipeLeft ? 'true' : 'false');
+    if (leftEl) {
+      leftEl.hidden = !canSwipeLeft;
+      if (canSwipeLeft && leftEl.style.display === 'none') {
+        leftEl.style.display = '';
+      }
+    }
+    if (rightEl) {
+      rightEl.hidden = false;
+      if (rightEl.style.display === 'none') {
+        rightEl.style.display = '';
+      }
+    }
+  } else if (isLatestMessage) {
+    mesEl.removeAttribute('data-yte-historical');
+    mesEl.setAttribute('data-yte-multi', summary.total > 1 ? 'true' : 'false');
+    mesEl.setAttribute('data-yte-can-left', canSwipeLeft ? 'true' : 'false');
+    if (summary.total > 1 && !isHostHidingSwipes && !isOverswipeGenerating) {
+      mesEl.classList.add('swipes_visible');
+      if (leftEl) {
+        leftEl.hidden = false;
+        if (leftEl.style.display === 'none') {
+          leftEl.style.display = '';
+        }
+      }
+      if (rightEl) {
+        rightEl.hidden = false;
+        if (rightEl.style.display === 'none') {
+          rightEl.style.display = '';
+        }
+      }
+    }
   } else {
     mesEl.removeAttribute('data-yte-historical');
     mesEl.removeAttribute('data-yte-multi');
@@ -385,6 +426,9 @@ function decorateMessageElement(mesId) {
 
     if (isRollingThisFloor) {
       counterEl.textContent = '…';
+    } else if (isOverswipeGenerating) {
+      const nextNum = Number(message.swipe_id) + 1;
+      counterEl.textContent = `${nextNum}/${nextNum}`;
     } else {
       const starMark = activeMeta.starred ? '★' : '';
       const previewMark = isPreviewingOther ? '*' : '';
@@ -504,6 +548,24 @@ async function rollHistoricalMessage(mesId) {
   if (!ctx || !Array.isArray(chat) || !chat[mesId]) return;
 
   if (mesId === chat.length - 1) {
+    const latestMes = chat[mesId];
+    const swipes = getMessageSwipes(latestMes);
+    const currentIdx = Number(latestMes?.swipe_id ?? 0) || 0;
+
+    // If the user is viewing an earlier swipe (e.g. 28/50) and clicks `[重 roll]`,
+    // jump directly to generating a brand-new swipe (#51) instead of flipping to 29/50!
+    if (Array.isArray(latestMes?.swipes) && latestMes.swipes.length > 1 && currentIdx < latestMes.swipes.length - 1) {
+      if (typeof ctx.swipe?.to === 'function') {
+        await ctx.swipe.to(null, 'right', {
+          forceMesId: mesId,
+          forceSwipeId: latestMes.swipes.length,
+        });
+        return;
+      }
+      // Fallback for older SillyTavern / TT clients without `ctx.swipe.to`
+      await setCanonicalSwipeOnMessage(mesId, swipes.length - 1, { keepExpanded: true });
+    }
+
     if (typeof ctx.swipe?.right === 'function') {
       await ctx.swipe.right();
     } else {
@@ -1501,11 +1563,24 @@ function bindEvents() {
   const eventTypes = ctx?.eventTypes || ctx?.event_types;
   if (!eventSource || !eventTypes) return false;
 
+  let delayedRefreshTimer1 = null;
+  let delayedRefreshTimer2 = null;
   const refreshAll = () => {
     requestAnimationFrame(() => {
       decorateAllMessages();
       if (modalState.open) renderOverviewModal();
     });
+  };
+  const scheduleFollowUpRefresh = () => {
+    if (delayedRefreshTimer1) clearTimeout(delayedRefreshTimer1);
+    if (delayedRefreshTimer2) clearTimeout(delayedRefreshTimer2);
+    delayedRefreshTimer1 = setTimeout(() => {
+      ctx.swipe?.refresh?.();
+      decorateAllMessages();
+    }, 140);
+    delayedRefreshTimer2 = setTimeout(() => {
+      decorateAllMessages();
+    }, 380);
   };
 
   if (eventTypes.CHAT_CHANGED) {
@@ -1560,6 +1635,7 @@ function bindEvents() {
         const newMes = chat[targetId];
         if (newMes && mergeRescuedSwipesOnRegenerate(newMes, pendingRegenerateRescue)) {
           pendingRegenerateRescue = null;
+          ctx.swipe?.refresh?.();
           persistChatQuietly();
         }
       }
@@ -1570,6 +1646,7 @@ function bindEvents() {
         };
       }
       refreshAll();
+      scheduleFollowUpRefresh();
     });
   }
 
@@ -1589,7 +1666,8 @@ function bindEvents() {
         settings.enabled &&
         settings.skipHiddenOnNativeSwipe &&
         !isAutoSkippingHiddenSwipe &&
-        targetId === chat.length - 1
+        targetId === chat.length - 1 &&
+        currentSwipeId < (message.swipes?.length ?? 0)
       ) {
         const meta = getSwipeMeta(message, currentSwipeId);
         const summary = summarizeMessageEchoes(message);
@@ -1610,6 +1688,7 @@ function bindEvents() {
       }
 
       decorateMessageElement(targetId);
+      scheduleFollowUpRefresh();
       if (modalState.open && modalState.mesId === targetId) {
         renderOverviewModal();
       }
@@ -1622,9 +1701,14 @@ function bindEvents() {
     eventTypes.MESSAGE_DELETED,
     eventTypes.USER_MESSAGE_RENDERED,
     eventTypes.MORE_MESSAGES_LOADED,
-    eventTypes.GENERATION_ENDED,
   ]) {
     if (evt) eventSource.on(evt, refreshAll);
+  }
+  if (eventTypes.GENERATION_ENDED) {
+    eventSource.on(eventTypes.GENERATION_ENDED, () => {
+      refreshAll();
+      scheduleFollowUpRefresh();
+    });
   }
 
   return true;
